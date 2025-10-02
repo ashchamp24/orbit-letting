@@ -14,7 +14,6 @@ export default function Layout({ children, currentPageName }) {
     { name: "Home", path: createPageUrl("Home"), icon: Home },
     { name: "Properties", path: createPageUrl("Properties"), icon: Search },
     { name: "Apply", path: createPageUrl("Apply"), icon: FileText },
-    { name: "Dashboard", path: createPageUrl("Dashboard"), icon: LayoutDashboard },
   ];
 
   return (
