@@ -1,7 +1,7 @@
 // src/api/entities.js
 import { base44 } from "@/api/base44Client";
 
-// Wrap every call so failures don't crash the UI
+// Return safe defaults so UI never crashes if Base44 is down
 export const Property = {
   list: async (...args) => {
     try { return await base44.entities.Property.list(...args); }
@@ -20,11 +20,10 @@ export const Property = {
 export const TenantInquiry = {
   create: async (payload) => {
     try { return await base44.entities.TenantInquiry.create(payload); }
-    catch (e) { console.error("TenantInquiry.create failed:", e); return { ok:false }; }
+    catch (e) { console.error("TenantInquiry.create failed:", e); return { ok:false, error:e?.message }; }
   }
 };
 
-// Auth (used only by Dashboard; we’ve hidden Dashboard but keep this safe)
 export const User = {
   me: async () => {
     try { return await base44.auth.me(); }
