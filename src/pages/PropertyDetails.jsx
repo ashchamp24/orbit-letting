@@ -29,17 +29,29 @@ export default function PropertyDetails() {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const propertyId = urlParams.get("id");
-    if (propertyId) {
-      loadProperty(propertyId);
+    if (!propertyId) {
+      setLoading(false);
+      return;
     }
+    loadProperty(propertyId);
   }, []);
 
   const loadProperty = async (id) => {
-    const properties = await Property.filter({ id });
-    if (properties.length > 0) {
-      setProperty(properties[0]);
+    try {
+      // Prefer a single get if available in your API wrapper,
+      // else fall back to filter by id.
+      const list = await Property.filter({ id });
+      if (Array.isArray(list) && list.length > 0) {
+        setProperty(list[0]);
+      } else {
+        setProperty(null);
+      }
+    } catch (e) {
+      console.error("Failed to load property:", e);
+      setProperty(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (loading) {
@@ -55,15 +67,24 @@ export default function PropertyDetails() {
       <div className="min-h-screen bg-[var(--orbit-cream)] flex items-center justify-center">
         <div className="text-center">
           <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-xl text-gray-500">Property not found</p>
+          <p className="text-xl text-gray-500 mb-6">We couldn’t load this property right now.</p>
+          <Button
+            onClick={() => navigate(createPageUrl("Properties"))}
+            className="bg-[var(--orbit-navy)] hover:bg-[var(--orbit-navy-light)] text-white"
+          >
+            Back to Properties
+          </Button>
         </div>
       </div>
     );
   }
 
-  const propertyImages = property.images && property.images.length > 0 
-    ? property.images 
-    : ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800"];
+  const propertyImages =
+    (property.images && property.images.length > 0
+      ? property.images
+      : ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop"]) as string[];
+
+  const safe = (v, fallback = "—") => (v ?? v === 0 ? v : fallback);
 
   return (
     <div className="min-h-screen bg-white">
@@ -87,7 +108,7 @@ export default function PropertyDetails() {
           <div className="relative h-96 md:h-[500px] rounded-2xl overflow-hidden mb-4 shadow-2xl">
             <img
               src={propertyImages[selectedImage]}
-              alt={property.title}
+              alt={property.title || "Property"}
               className="w-full h-full object-cover"
             />
             <Badge className="absolute top-4 right-4 bg-[var(--orbit-gold)] text-[var(--orbit-navy)] font-semibold text-base px-4 py-2">
@@ -101,8 +122,8 @@ export default function PropertyDetails() {
                   key={index}
                   onClick={() => setSelectedImage(index)}
                   className={`relative h-24 rounded-lg overflow-hidden transition-all duration-200 ${
-                    selectedImage === index 
-                      ? "ring-4 ring-[var(--orbit-gold)]" 
+                    selectedImage === index
+                      ? "ring-4 ring-[var(--orbit-gold)]"
                       : "opacity-60 hover:opacity-100"
                   }`}
                 >
@@ -119,25 +140,35 @@ export default function PropertyDetails() {
             {/* Title & Price */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-[var(--orbit-navy)] mb-4">
-                {property.title}
+                {safe(property.title, "Property")}
               </h1>
               <div className="flex items-center gap-2 text-xl text-[var(--orbit-text-light)] mb-6">
                 <MapPin className="w-5 h-5" />
-                {property.address}, {property.city}, {property.postcode}
+                {[
+                  safe(property.address, ""),
+                  safe(property.city, ""),
+                  safe(property.postcode, "")
+                ]
+                  .filter(Boolean)
+                  .join(", ") || "Address unavailable"}
               </div>
               <div className="text-4xl font-bold text-[var(--orbit-navy)]">
-                £{property.price_per_month.toLocaleString()}
-                <span className="text-xl text-[var(--orbit-text-light)] font-normal">/month</span>
+                {property.price_per_month
+                  ? `£${Number(property.price_per_month).toLocaleString()}`
+                  : "Price on request"}
+                <span className="text-xl text-[var(--orbit-text-light)] font-normal">
+                  {property.price_per_month ? "/month" : ""}
+                </span>
               </div>
             </div>
 
             {/* Key Details */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { icon: Bed, label: "Bedrooms", value: property.bedrooms },
-                { icon: Bath, label: "Bathrooms", value: property.bathrooms },
-                { icon: Maximize, label: "Sq Feet", value: property.square_feet },
-                { icon: Home, label: "Type", value: property.property_type }
+                { icon: Bed, label: "Bedrooms", value: safe(property.bedrooms) },
+                { icon: Bath, label: "Bathrooms", value: safe(property.bathrooms) },
+                { icon: Maximize, label: "Sq Feet", value: safe(property.square_feet) },
+                { icon: Home, label: "Type", value: safe(property.property_type) }
               ].map((item, index) => (
                 <div key={index} className="bg-[var(--orbit-cream)] p-4 rounded-xl">
                   <item.icon className="w-6 h-6 text-[var(--orbit-gold)] mb-2" />
@@ -151,12 +182,12 @@ export default function PropertyDetails() {
             <div>
               <h2 className="text-2xl font-bold text-[var(--orbit-navy)] mb-4">Description</h2>
               <p className="text-[var(--orbit-text)] leading-relaxed text-lg">
-                {property.description}
+                {safe(property.description, "No description available.")}
               </p>
             </div>
 
             {/* Features */}
-            {property.features && property.features.length > 0 && (
+            {Array.isArray(property.features) && property.features.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold text-[var(--orbit-navy)] mb-4">Features</h2>
                 <div className="grid md:grid-cols-2 gap-3">
@@ -182,7 +213,9 @@ export default function PropertyDetails() {
                     <div>
                       <div className="text-sm text-[var(--orbit-text-light)]">Available From</div>
                       <div className="font-semibold text-[var(--orbit-navy)]">
-                        {property.available_from ? format(new Date(property.available_from), "MMMM d, yyyy") : "Now"}
+                        {property.available_from
+                          ? format(new Date(property.available_from), "MMMM d, yyyy")
+                          : "Now"}
                       </div>
                     </div>
                   </div>
@@ -191,7 +224,7 @@ export default function PropertyDetails() {
                     <div>
                       <div className="text-sm text-[var(--orbit-text-light)]">Deposit</div>
                       <div className="font-semibold text-[var(--orbit-navy)]">
-                        £{property.deposit?.toLocaleString() || "N/A"}
+                        {property.deposit != null ? `£${Number(property.deposit).toLocaleString()}` : "N/A"}
                       </div>
                     </div>
                   </div>
@@ -202,16 +235,19 @@ export default function PropertyDetails() {
                 <h3 className="text-xl font-bold text-[var(--orbit-navy)] mb-4">Additional Info</h3>
                 <div className="space-y-3">
                   {[
-                    { icon: Sofa, label: "Furnished", value: property.furnished },
-                    { icon: PawPrint, label: "Pets Allowed", value: property.pets_allowed },
-                    { icon: Car, label: "Parking", value: property.parking }
+                    { icon: Sofa, label: "Furnished", value: !!property.furnished },
+                    { icon: PawPrint, label: "Pets Allowed", value: !!property.pets_allowed },
+                    { icon: Car, label: "Parking", value: !!property.parking }
                   ].map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <item.icon className="w-5 h-5 text-[var(--orbit-gold)]" />
                         <span className="text-[var(--orbit-text)]">{item.label}</span>
                       </div>
-                      <Badge variant={item.value ? "default" : "secondary"} className={item.value ? "bg-green-100 text-green-800" : ""}>
+                      <Badge
+                        variant={item.value ? "default" : "secondary"}
+                        className={item.value ? "bg-green-100 text-green-800" : ""}
+                      >
                         {item.value ? "Yes" : "No"}
                       </Badge>
                     </div>
