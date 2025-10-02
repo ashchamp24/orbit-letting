@@ -38,8 +38,6 @@ export default function PropertyDetails() {
 
   const loadProperty = async (id) => {
     try {
-      // Prefer a single get if available in your API wrapper,
-      // else fall back to filter by id.
       const list = await Property.filter({ id });
       if (Array.isArray(list) && list.length > 0) {
         setProperty(list[0]);
@@ -80,9 +78,9 @@ export default function PropertyDetails() {
   }
 
   const propertyImages =
-    (property.images && property.images.length > 0
+    property.images && property.images.length > 0
       ? property.images
-      : ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop"]) as string[];
+      : ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop"];
 
   const safe = (v, fallback = "—") => (v ?? v === 0 ? v : fallback);
 
