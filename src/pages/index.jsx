@@ -8,7 +8,6 @@ import PropertyDetails from "./PropertyDetails";
 
 import Apply from "./Apply";
 
-import Dashboard from "./Dashboard";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -22,7 +21,6 @@ const PAGES = {
     
     Apply: Apply,
     
-    Dashboard: Dashboard,
     
 }
 
